@@ -61,7 +61,7 @@ class PageObjectLibraryKeywords(object):
         # If we get here, we're not on the page we think we're on
         raise Exception("Expected page to be %s but it was not" % page_name)
 
-    def go_to_page(self, page_name, page_root=None):
+    def go_to_page(self, page_name, page_root=None, expect_alert=False):
         """Go to the url for the given page object.
 
         Unless explicitly provided, the URL root will be based on the
@@ -98,6 +98,8 @@ class PageObjectLibraryKeywords(object):
 
         with page._wait_for_page_refresh():
             page.selib.go_to(url)
+            if expect_alert:
+                page.selib.handle_alert()
         # should I be calling this keyword? Should this keyword return
         # true/false, or should it throw an exception?
         self.the_current_page_should_be(page_name)
