@@ -1,12 +1,16 @@
 from __future__ import absolute_import, unicode_literals
 
+import time
+import warnings
 from abc import ABCMeta
 from contextlib import contextmanager
-import warnings
+
+from SeleniumLibrary.errors import ElementNotFound
 
 import robot.api
 from robot.libraries.BuiltIn import BuiltIn
 
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support.expected_conditions import staleness_of
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -112,13 +116,19 @@ class PageObject(six.with_metaclass(ABCMeta, object)):
 
         """
 
-        actual_title = self.selib.get_title()
-        expected_title = self.PAGE_TITLE
+        max_time = time.time() + 5
 
-        if actual_title.lower() == expected_title.lower():
-            return True
-
-        self.logger.info("expected title: '%s'" % expected_title)
-        self.logger.info("  actual title: '%s'" % actual_title)
-        raise Exception("expected title to be '%s' but it was '%s'" % (expected_title, actual_title))
-        return False
+        while time.time() < max_time:
+            try:
+                if self.selib.get_title().lower() == self.PAGE_TITLE.lower():
+                    return True
+            except ElementNotFound as err:
+                self.info(f'Suppressing ElementNotFound {err} from Selenium.')
+            except StaleElementReferenceException as err:
+                self.info(f'Suppressing StaleElementReferenceException {err} from Selenium.')
+            else:
+                self.logger.info("expected title: '%s'" % self.PAGE_TITLE)
+                self.logger.info("  actual title: '%s'" % self.selib.get_title())
+                raise Exception("expected title to be '%s' but it was '%s'" % (self.PAGE_TITLE, self.selib.get_title()))
+                return False
+            time.sleep(0.2)
